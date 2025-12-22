@@ -301,7 +301,7 @@ def main() -> None:
                         consecutive_zero_new = 0
 
                     if consecutive_zero_new >= 5:  # S2
-                        stop_reason = f"no_new_jobs_2_pages page={page}"
+                        stop_reason = f"no_new_jobs_5_pages page={page}"
                         break
 
                     time.sleep(0.2)  # politeness delay
