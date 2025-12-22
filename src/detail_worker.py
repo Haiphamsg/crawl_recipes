@@ -60,18 +60,20 @@ def write_staging(sb: SupabaseRest, job: Dict[str, Any], parsed: ParsedRecipe) -
     sb.delete_where("stg_recipe_steps", f"recipe_id=eq.{recipe_id}")
     sb.delete_where("stg_recipe_comments", f"recipe_id=eq.{recipe_id}")
 
-    sb.insert(
+    sb.upsert(
         "stg_recipe_keywords",
         [{"recipe_id": recipe_id, "keyword": k} for k in parsed.keywords],
+        on_conflict="recipe_id,keyword",
     )
-    sb.insert(
+    sb.upsert(
         "stg_recipe_ingredients",
         [
             {"recipe_id": recipe_id, "ingredient_index": i, "ingredient_text": txt}
             for i, txt in enumerate(parsed.ingredients)
         ],
+        on_conflict="recipe_id,ingredient_index",
     )
-    sb.insert(
+    sb.upsert(
         "stg_recipe_steps",
         [
             {
@@ -82,8 +84,9 @@ def write_staging(sb: SupabaseRest, job: Dict[str, Any], parsed: ParsedRecipe) -
             }
             for i, s in enumerate(parsed.steps)
         ],
+        on_conflict="recipe_id,step_index",
     )
-    sb.insert(
+    sb.upsert(
         "stg_recipe_comments",
         [
             {
@@ -97,6 +100,7 @@ def write_staging(sb: SupabaseRest, job: Dict[str, Any], parsed: ParsedRecipe) -
             }
             for c in parsed.comments
         ],
+        on_conflict="recipe_id,text_hash",
     )
 
 

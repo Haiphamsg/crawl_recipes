@@ -153,12 +153,6 @@ Detail parser selects only JSON-LD object with `"@type": "Recipe"` (skip `WebSit
 - Rate limiting: cap concurrent workers to 3; add jitter sleep on 429.
 - Idempotency: queue unique `(source, locale, recipe_id)`; staging/product upsert by PK; child rows replace-by-recipe_id.
 - Backoff: attempts 1→+60s, 2→+180s, 3→dead.
+- Daily run: harvest Tier1 then Tier2; run workers continuously or on schedule; optional `prune_product_older_than(cutoff_date)` to keep only last 30d in product.
+- Reliability: Supabase REST calls retry on 429/5xx or network errors (3 attempts).
 - Daily run: harvest Tier1 then Tier2; run workers continuously or on schedule; optional `rpc_prune_product(cutoff_date)` to keep only last 30d in product.
-
-
-
-
-
-
-beautifulsoup4>=4.12.0
-lxml>=5.0.0
