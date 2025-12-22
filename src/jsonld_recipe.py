@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from bs4 import BeautifulSoup
+from selectolax.parser import HTMLParser
 
 from .utils import parse_datetime_maybe, sha256_text
 
@@ -155,12 +155,11 @@ class ParsedRecipe:
 
 
 def parse_jsonld_recipe(html: str, requested_url: str, recipe_id: int) -> Optional[ParsedRecipe]:
-    soup = BeautifulSoup(html, "lxml")
-    scripts = soup.find_all("script", attrs={"type": "application/ld+json"})
     candidates: List[Dict[str, Any]] = []
 
-    for s in scripts:
-        raw = (s.get_text() or "").strip()
+    tree = HTMLParser(html)
+    for s in tree.css('script[type="application/ld+json"]'):
+        raw = (s.text() or "").strip()
         if not raw:
             continue
         try:
