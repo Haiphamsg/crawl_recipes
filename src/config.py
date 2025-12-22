@@ -30,7 +30,7 @@ class Settings:
     source: str = "cookpad"
     locale: str = "vn"
     cutoff_days: int = 50
-    max_pages_per_keyword: int = 50
+    max_pages_per_keyword: int = 500
 
     user_agent: str = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
