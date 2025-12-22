@@ -152,6 +152,16 @@ def main() -> None:
         if not job:
             time.sleep(5)
             continue
+        if isinstance(job, dict) and not job.get("id"):
+            # Some PostgREST setups can serialize a NULL composite return as an object with NULL fields.
+            # Treat that as "no job" to avoid crashing / marking invalid with a NULL job_id.
+            print(
+                f"[detail_worker] claim_next_crawl_job returned empty payload: {_short_repr(job, limit=500)}",
+                file=sys.stderr,
+                flush=True,
+            )
+            time.sleep(5)
+            continue
 
         job_id = job["id"]
         requested_url = job.get("requested_url")
