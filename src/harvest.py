@@ -101,9 +101,13 @@ async def _harvest_keyword_async(
     tier: int,
     max_pages: int,
     batch_size: int,
+    verbose: bool,
 ) -> None:
     consecutive_zero_new = 0
     prev_signature = None
+    total_found = 0
+    total_inserted = 0
+    pages_ok = 0
 
     page = 1
     while page <= max_pages:
@@ -113,14 +117,20 @@ async def _harvest_keyword_async(
 
         for p, html in zip(batch_pages, htmls):
             if not html:
+                if verbose:
+                    print(f"[harvest][tier={tier}][kw={keyword}] stop: fetch_failed page={p}")
                 return
 
             recipe_ids = extract_recipe_ids_from_listing(html)
             if not recipe_ids:  # S1
+                if verbose:
+                    print(f"[harvest][tier={tier}][kw={keyword}] stop: empty_page page={p}")
                 return
 
             sig = signature_of_ids(recipe_ids)
             if prev_signature is not None and sig == prev_signature:  # S3
+                if verbose:
+                    print(f"[harvest][tier={tier}][kw={keyword}] stop: loop_signature page={p}")
                 return
             prev_signature = sig
 
@@ -136,6 +146,16 @@ async def _harvest_keyword_async(
                 },
             )
             inserted = int(result[0]["inserted_count"]) if result else 0
+            skipped = int(result[0]["skipped_count"]) if result else 0
+            pages_ok += 1
+            total_found += len(recipe_ids)
+            total_inserted += inserted
+
+            if verbose:
+                print(
+                    f"[harvest][tier={tier}][kw={keyword}] page={p} found={len(recipe_ids)} "
+                    f"inserted={inserted} skipped={skipped}"
+                )
 
             if inserted == 0:
                 consecutive_zero_new += 1
@@ -143,11 +163,21 @@ async def _harvest_keyword_async(
                 consecutive_zero_new = 0
 
             if consecutive_zero_new >= 2:  # S2
+                if verbose:
+                    print(
+                        f"[harvest][tier={tier}][kw={keyword}] stop: no_new_jobs_2_pages page={p} "
+                        f"summary pages_ok={pages_ok} found={total_found} inserted={total_inserted}"
+                    )
                 return
 
             await asyncio.sleep(0.2)
 
         page += batch_size
+    if verbose:
+        print(
+            f"[harvest][tier={tier}][kw={keyword}] done: reached_max_pages={max_pages} "
+            f"summary pages_ok={pages_ok} found={total_found} inserted={total_inserted}"
+        )
 
 
 def main() -> None:
@@ -155,12 +185,16 @@ def main() -> None:
     ap.add_argument("--async", dest="use_async", action="store_true")
     ap.add_argument("--keyword-concurrency", type=int, default=5)
     ap.add_argument("--batch-size", type=int, default=3)
+    ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
     settings = load_settings()
     sb = SupabaseRest(settings.supabase_url, settings.supabase_service_role_key)
 
     headers = {"User-Agent": settings.user_agent, "Accept": "text/html"}
+    total_keywords = 0
+    total_inserted = 0
+    total_found = 0
 
     if args.use_async:
         async def _run() -> None:
@@ -174,6 +208,7 @@ def main() -> None:
                 tasks = []
                 for tier, seeds in iter_seed_tiers():
                     for keyword in seeds:
+                        total_keywords += 1
                         feedback = sb.select_one(
                             "keyword_feedback", f"keyword=eq.{keyword}&select=is_stale,stale_page"
                         )
@@ -191,6 +226,7 @@ def main() -> None:
                                     tier=tier,
                                     max_pages=max_pages,
                                     batch_size=max(1, args.batch_size),
+                                    verbose=args.verbose,
                                 )
 
                         tasks.append(asyncio.create_task(_bounded()))
@@ -198,12 +234,14 @@ def main() -> None:
                 await asyncio.gather(*tasks)
 
         asyncio.run(_run())
+        print(f"[harvest] complete (async) keywords={total_keywords}")
         return
 
     timeout = httpx.Timeout(connect=10.0, read=20.0, write=10.0, pool=10.0)
     with httpx.Client(http2=True, timeout=timeout, headers=headers) as client:
         for tier, seeds in iter_seed_tiers():
             for keyword in seeds:
+                total_keywords += 1
                 feedback = sb.select_one(
                     "keyword_feedback", f"keyword=eq.{keyword}&select=is_stale,stale_page"
                 )
@@ -212,20 +250,26 @@ def main() -> None:
 
                 consecutive_zero_new = 0
                 prev_signature = None
+                kw_found = 0
+                kw_inserted = 0
+                stop_reason = "max_pages"
 
                 for page in range(1, max_pages + 1):
                     url = SEARCH_URL_TEMPLATE.format(keyword=keyword, page=page)
                     html = _fetch_listing_sync(client, url)
                     if not html:
+                        stop_reason = f"fetch_failed page={page}"
                         break
 
                     recipe_ids = extract_recipe_ids_from_listing(html)
                     found_count = len(recipe_ids)
                     if found_count == 0:  # S1
+                        stop_reason = f"empty_page page={page}"
                         break
 
                     sig = signature_of_ids(recipe_ids)
                     if prev_signature is not None and sig == prev_signature:  # S3
+                        stop_reason = f"loop_signature page={page}"
                         break
                     prev_signature = sig
 
@@ -241,6 +285,15 @@ def main() -> None:
                         },
                     )
                     inserted = int(result[0]["inserted_count"]) if result else 0
+                    skipped = int(result[0]["skipped_count"]) if result else 0
+                    kw_found += found_count
+                    kw_inserted += inserted
+
+                    if args.verbose:
+                        print(
+                            f"[harvest][tier={tier}][kw={keyword}] page={page} found={found_count} "
+                            f"inserted={inserted} skipped={skipped}"
+                        )
 
                     if inserted == 0:
                         consecutive_zero_new += 1
@@ -248,9 +301,21 @@ def main() -> None:
                         consecutive_zero_new = 0
 
                     if consecutive_zero_new >= 2:  # S2
+                        stop_reason = f"no_new_jobs_2_pages page={page}"
                         break
 
                     time.sleep(0.2)  # politeness delay
+
+                total_found += kw_found
+                total_inserted += kw_inserted
+                print(
+                    f"[harvest][tier={tier}][kw={keyword}] done: {stop_reason} "
+                    f"found={kw_found} inserted={kw_inserted}"
+                )
+
+    print(
+        f"[harvest] complete (sync) keywords={total_keywords} found={total_found} inserted={total_inserted}"
+    )
 
 
 if __name__ == "__main__":
