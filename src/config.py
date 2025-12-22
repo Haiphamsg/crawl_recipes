@@ -15,8 +15,8 @@ class Settings:
     supabase_service_role_key: str
     source: str = "cookpad"
     locale: str = "vn"
-    cutoff_days: int = 30
-    max_pages_per_keyword: int = 30
+    cutoff_days: int = 50
+    max_pages_per_keyword: int = 50
 
     user_agent: str = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
