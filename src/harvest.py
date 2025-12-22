@@ -162,10 +162,10 @@ async def _harvest_keyword_async(
             else:
                 consecutive_zero_new = 0
 
-            if consecutive_zero_new >= 2:  # S2
+            if consecutive_zero_new >= 5:  # S2
                 if verbose:
                     print(
-                        f"[harvest][tier={tier}][kw={keyword}] stop: no_new_jobs_2_pages page={p} "
+                        f"[harvest][tier={tier}][kw={keyword}] stop: no_new_jobs_5_pages page={p} "
                         f"summary pages_ok={pages_ok} found={total_found} inserted={total_inserted}"
                     )
                 return
@@ -300,7 +300,7 @@ def main() -> None:
                     else:
                         consecutive_zero_new = 0
 
-                    if consecutive_zero_new >= 2:  # S2
+                    if consecutive_zero_new >= 5:  # S2
                         stop_reason = f"no_new_jobs_2_pages page={page}"
                         break
 
