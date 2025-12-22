@@ -23,7 +23,7 @@ class Settings:
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     )
-    
+
     @property
     def cutoff_date(self) -> date:
         return date.today() - timedelta(days=self.cutoff_days)
