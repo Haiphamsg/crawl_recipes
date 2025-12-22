@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from datetime import date, timedelta
-from dotenv import load_dotenv
 
 
 TIER_1_SEEDS = ["a", "e", "i", "o", "u", "n", "m", "t", "c", "b"]
