@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 from datetime import date
 from typing import Any, Dict, Optional
@@ -13,7 +14,35 @@ from .supabase_rest import SupabaseRest
 from .utils import RE_RECIPE_URL
 
 
-def _job_recipe_id_from_url(url: str) -> Optional[int]:
+def _short_repr(value: Any, limit: int = 200) -> str:
+    s = repr(value)
+    if len(s) > limit:
+        return s[: max(0, limit - 3)] + "..."
+    return s
+
+
+def _invalid_reason(
+    code: str,
+    *,
+    job_id: Any,
+    recipe_id: Any,
+    requested_url: Any,
+    parsed_recipe_id: Any = None,
+) -> str:
+    parts = [
+        code,
+        f"job_id={job_id}",
+        f"recipe_id={recipe_id}",
+        f"requested_url={_short_repr(requested_url)}",
+    ]
+    if parsed_recipe_id is not None:
+        parts.append(f"parsed_recipe_id={parsed_recipe_id}")
+    return "|".join(parts)
+
+
+def _job_recipe_id_from_url(url: Optional[str]) -> Optional[int]:
+    if not isinstance(url, str) or not url.strip():
+        return None
     m = RE_RECIPE_URL.match(url.strip())
     if not m:
         return None
@@ -125,12 +154,34 @@ def main() -> None:
             continue
 
         job_id = job["id"]
-        requested_url = job["requested_url"]
-        recipe_id = _job_recipe_id_from_url(requested_url)
-        if recipe_id is None or int(job["recipe_id"]) != int(recipe_id):
+        requested_url = job.get("requested_url")
+        if not isinstance(requested_url, str) or not requested_url.strip():
+            reason = _invalid_reason(
+                "missing_requested_url",
+                job_id=job_id,
+                recipe_id=job.get("recipe_id"),
+                requested_url=requested_url,
+            )
+            print(f"[detail_worker] invalid job: {reason}", file=sys.stderr, flush=True)
             sb.rpc(
                 "mark_crawl_job_invalid",
-                {"p_job_id": job_id, "p_reason": "bad_requested_url", "p_http_status": None},
+                {"p_job_id": job_id, "p_reason": reason, "p_http_status": None},
+            )
+            continue
+
+        recipe_id = _job_recipe_id_from_url(requested_url)
+        if recipe_id is None or int(job["recipe_id"]) != int(recipe_id):
+            reason = _invalid_reason(
+                "bad_requested_url",
+                job_id=job_id,
+                recipe_id=job.get("recipe_id"),
+                requested_url=requested_url,
+                parsed_recipe_id=recipe_id,
+            )
+            print(f"[detail_worker] invalid job: {reason}", file=sys.stderr, flush=True)
+            sb.rpc(
+                "mark_crawl_job_invalid",
+                {"p_job_id": job_id, "p_reason": reason, "p_http_status": None},
             )
             continue
 
