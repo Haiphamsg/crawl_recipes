@@ -6,8 +6,22 @@ from datetime import date, timedelta
 
 
 TIER_1_SEEDS = ["a", "e", "i", "o", "u", "n", "m", "t", "c", "b"]
-TIER_2_SEEDS = ["h", "g", "r", "s", "l", "p", "d", "k", "v", "y", "1", "2", "3"]
+TIER_2_SEEDS = [
+    "h", "g", "r", "s", "l", "p", "d", "k", "v", "y",
+    "1", "2", "3",
 
+    # numeric extension (ROI còn tốt)
+    "4", "5",
+
+    # protein – cực phổ biến trong recipe mới
+    "ga", "heo", "thit", "bo", "ca", "tom", "trung",
+
+    # món ăn phổ biến (không dấu để match rộng)
+    "canh", "kho", "xao", "chien", "hap", "nuong",
+
+    # token ngắn tần suất cao (chạy page cap thấp)
+    "ng", "th", "ch"
+]
 
 @dataclass(frozen=True)
 class Settings:
