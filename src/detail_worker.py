@@ -150,6 +150,7 @@ def main() -> None:
         if isinstance(job, list):
             job = job[0] if job else None
         if not job:
+            print(f"[detail_worker][{args.worker_id}] idle: no job", flush=True)
             time.sleep(5)
             continue
         if isinstance(job, dict) and not job.get("id"):
@@ -165,6 +166,11 @@ def main() -> None:
 
         job_id = job["id"]
         requested_url = job.get("requested_url")
+        print(
+            f"[detail_worker][{args.worker_id}] claimed job_id={job_id} recipe_id={job.get('recipe_id')} "
+            f"keyword={job.get('keyword')} page={job.get('page')}",
+            flush=True,
+        )
         if not isinstance(requested_url, str) or not requested_url.strip():
             reason = _invalid_reason(
                 "missing_requested_url",
@@ -177,6 +183,7 @@ def main() -> None:
                 "mark_crawl_job_invalid",
                 {"p_job_id": job_id, "p_reason": reason, "p_http_status": None},
             )
+            print(f"[detail_worker][{args.worker_id}] invalid: {reason}", flush=True)
             continue
 
         recipe_id = _job_recipe_id_from_url(requested_url)
@@ -193,6 +200,7 @@ def main() -> None:
                 "mark_crawl_job_invalid",
                 {"p_job_id": job_id, "p_reason": reason, "p_http_status": None},
             )
+            print(f"[detail_worker][{args.worker_id}] invalid: {reason}", flush=True)
             continue
 
         try:
@@ -206,6 +214,10 @@ def main() -> None:
                 "mark_crawl_job_failed",
                 {"p_job_id": job_id, "p_error": f"request_error:{type(e).__name__}", "p_http_status": None},
             )
+            print(
+                f"[detail_worker][{args.worker_id}] failed: request_error:{type(e).__name__} job_id={job_id}",
+                flush=True,
+            )
             continue
 
         if resp.status_code in (301, 302):
@@ -213,11 +225,19 @@ def main() -> None:
                 "mark_crawl_job_invalid",
                 {"p_job_id": job_id, "p_reason": "redirect", "p_http_status": resp.status_code},
             )
+            print(
+                f"[detail_worker][{args.worker_id}] invalid: redirect job_id={job_id} http={resp.status_code}",
+                flush=True,
+            )
             continue
         if resp.url != requested_url:
             sb.rpc(
                 "mark_crawl_job_invalid",
                 {"p_job_id": job_id, "p_reason": "url_mismatch", "p_http_status": resp.status_code},
+            )
+            print(
+                f"[detail_worker][{args.worker_id}] invalid: url_mismatch job_id={job_id} http={resp.status_code}",
+                flush=True,
             )
             continue
         if resp.status_code in (404, 410):
@@ -225,11 +245,19 @@ def main() -> None:
                 "mark_crawl_job_invalid",
                 {"p_job_id": job_id, "p_reason": "notfound", "p_http_status": resp.status_code},
             )
+            print(
+                f"[detail_worker][{args.worker_id}] invalid: notfound job_id={job_id} http={resp.status_code}",
+                flush=True,
+            )
             continue
         if resp.status_code == 429 or resp.status_code >= 500:
             sb.rpc(
                 "mark_crawl_job_failed",
                 {"p_job_id": job_id, "p_error": f"http_{resp.status_code}", "p_http_status": resp.status_code},
+            )
+            print(
+                f"[detail_worker][{args.worker_id}] failed: http_{resp.status_code} job_id={job_id}",
+                flush=True,
             )
             time.sleep(1)
             continue
@@ -237,6 +265,10 @@ def main() -> None:
             sb.rpc(
                 "mark_crawl_job_failed",
                 {"p_job_id": job_id, "p_error": f"http_{resp.status_code}", "p_http_status": resp.status_code},
+            )
+            print(
+                f"[detail_worker][{args.worker_id}] failed: http_{resp.status_code} job_id={job_id}",
+                flush=True,
             )
             continue
 
@@ -246,6 +278,10 @@ def main() -> None:
                 "mark_crawl_job_invalid",
                 {"p_job_id": job_id, "p_reason": "no_recipe_jsonld", "p_http_status": 200},
             )
+            print(
+                f"[detail_worker][{args.worker_id}] invalid: no_recipe_jsonld job_id={job_id}",
+                flush=True,
+            )
             continue
 
         try:
@@ -254,6 +290,10 @@ def main() -> None:
             sb.rpc(
                 "mark_crawl_job_failed",
                 {"p_job_id": job_id, "p_error": f"staging_write:{type(e).__name__}", "p_http_status": 200},
+            )
+            print(
+                f"[detail_worker][{args.worker_id}] failed: staging_write:{type(e).__name__} job_id={job_id}",
+                flush=True,
             )
             continue
 
@@ -273,6 +313,10 @@ def main() -> None:
             )
 
         sb.rpc("mark_crawl_job_done", {"p_job_id": job_id})
+        print(
+            f"[detail_worker][{args.worker_id}] done job_id={job_id} recipe_id={recipe_id}",
+            flush=True,
+        )
 
 
 if __name__ == "__main__":
