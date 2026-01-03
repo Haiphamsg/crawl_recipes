@@ -5,23 +5,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 
-TIER_1_SEEDS = ["a", "e", "i", "o", "u", "n", "m", "t", "c", "b"]
-TIER_2_SEEDS = [
-    "h", "g", "r", "s", "l", "p", "d", "k", "v", "y",
-    "1", "2", "3",
-
-    # numeric extension (ROI còn tốt)
-    "4", "5",
-
-    # protein – cực phổ biến trong recipe mới
-    "ga", "heo", "thit", "bo", "ca", "tom", "trung",
-
-    # món ăn phổ biến (không dấu để match rộng)
-    "canh", "kho", "xao", "chien", "hap", "nuong",
-
-    # token ngắn tần suất cao (chạy page cap thấp)
-    "ng", "th", "ch"
-]
+TIER_1_SEEDS = ["Ba chỉ bò", "Ba rọi heo", "Bò lúc lắc", "Bò viên", "Bạch tuộc", "Bắp bò", "Bắp heo", "Chân giò heo", "Chân gà", "Chả cá", "Cua đồng xay", "Cá basa", "Cá bạc má", "Cá chim", "Cá diêu hồng", "Cá hường", "Cá hồi", "Cá lóc", "Cá ngân", "Cá ngừ", "Cá nục", "Cá sòng", "Cá sặc", "Cá viên", "Cánh gà", "Cốt lết", "Hến", "Lòng Gà", "Mề gà", "Nghêu", "Nạc vai heo", "Nạm bò", "Râu mực", "Sò lông", "Sườn heo", "Sụn gà", "Sứa", "Thăn heo", "Thịt heo xay", "Thịt vụn bò", "Thịt đùi heo", "Tim gà", "Trứng cút", "Trứng gà", "Trứng vịt", "Tôm khô", "Tôm thẻ", "Tôm viên", "Tỏi gà", "Vịt", "Xương gà", "Xương heo", "Đuôi mực", "Đùi bò", "Đùi gà", "Đầu cá hồi", "Ếch", "Ốc bươu", "Ốc móng tay", "Ức cá basa", "Ức gà", "Bí", "Bông súng", "Bầu", "Bắp cải", "Cà chua", "Cà pháo", "Cà rốt", "Cà tím", "Cải bẹ", "Cải ngọt", "Cải ngồng", "Cải thìa", "Củ cải", "Củ dền", "Củ nghệ", "Củ sắn", "Dưa leo", "Hạt dẻ", "Khoai mỡ", "Khoai tây", "Khổ qua", "Me chua", "Mướp", "Nấm bào ngư xám", "Nấm hương", "Nấm kim châm", "Nấm linh chi", "Nấm mèo đen", "Nấm tuyết", "Nấm đông cô", "Nấm đùi gà", "Rau muống", "Rau má", "Rau mồng tơi", "Rau ngót", "Rau om", "Su su", "Trái bắp", "Xà lách", "Đậu bắp", "Đậu cove", "Đậu rồng"]
+TIER_2_SEEDS = ["Bánh phồng", "Bánh tráng", "Bánh đa", "Hạt sen", "Hạt é", "Mè", "Măng", "Phổ tai", "Rong biển", "Đậu nành", "Đậu phộng", "Đậu trắng", "Đậu xanh", "Đậu đen hạt", "Đậu đỏ"]
 
 @dataclass(frozen=True)
 class Settings:
