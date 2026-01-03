@@ -36,7 +36,7 @@ def load_settings() -> Settings:
 
     source = os.environ.get("SOURCE", "cookpad").strip()
     locale = os.environ.get("LOCALE", "vn").strip()
-    cutoff_days = int(os.environ.get("CUTOFF_DAYS", "30"))
+    cutoff_days = int(os.environ.get("CUTOFF_DAYS", "50000"))
     max_pages = int(os.environ.get("MAX_PAGES_PER_KEYWORD", "30"))
     return Settings(
         supabase_url=supabase_url,
