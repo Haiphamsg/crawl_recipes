@@ -198,6 +198,7 @@ def main() -> None:
 
     if args.use_async:
         async def _run() -> None:
+            nonlocal total_keywords
             limits = httpx.Limits(max_connections=max(args.keyword_concurrency * 2, 10))
             timeout = httpx.Timeout(connect=10.0, read=20.0, write=10.0, pool=10.0)
             sem = asyncio.Semaphore(max(1, args.keyword_concurrency))
